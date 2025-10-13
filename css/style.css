@@ -1,0 +1,7 @@
+.segment-header:hover{
+	color: blue;
+}
+
+.segment-header.selected{
+	color: blue;
+}
