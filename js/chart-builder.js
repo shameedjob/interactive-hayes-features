@@ -41,6 +41,7 @@ function processData(allText) {
 	var all_lines = allText.split(/\r\n|\n/);
 	var header = all_lines[0].split(',');
 	var table = $('<table id="feature-table-table"></table>');
+	$("#output-type").change(update_matches);
 	table.appendTo('#feature-table')
 	var header_row = $('<tr id="header-row"></tr>');
 	header_row.appendTo(table)
@@ -48,7 +49,7 @@ function processData(allText) {
 		var header_segment = $(`<th class='segment-header' id='${i}_header'>`+header[i]+'</th>')
 		header_segment.appendTo(header_row);
 		if(i>0){
-			data[header[i]] = "0b"
+			data[header[i]] = ""
 			header_segment.click(click_obj.bind(null, i, true));
 		}
 	}
@@ -62,8 +63,17 @@ function processData(allText) {
 		for (let j = 0; j < row.length; j++){
 			var value = row[j];
 			if (j>0){
-				value = "<input type='checkbox'"+((row[j]==1)?'checked':'')+' disabled>';
-				data[header[j]] += (row[j]==1)?"1":"0";
+				if (row[j]=="") {
+					data[header[j]] += "X";
+				}
+				else if (Number(row[j])==1){
+					value = "<input type='checkbox'"+((row[j]==1)?'checked':'')+' disabled>';
+					data[header[j]] += "1";
+				}
+				else if(Number(row[j])==0){
+					value = "<input type='checkbox'"+((row[j]==1)?'checked':'')+' disabled>';
+					data[header[j]] += "0";
+				}
 				table_row.append('<td>'+value+'</td>');
 			}
 			else{
@@ -74,13 +84,22 @@ function processData(allText) {
 		}
 	}
 	for (let i = 1; i < header.length; i++){
-		data[header[i]] = Number(data[header[i]]);
+		var tempData = data[header[i]]
+		tempData = tempData.replaceAll("0", "-")
+		tempData = tempData.replaceAll("1", "0")
+		tempData = tempData.replaceAll("-", "1")
+		tempData = "0b"+tempData.replaceAll("X", "0")
+		console.log(tempData)
+		data[header[i]] = [
+			Number("0b"+data[header[i]].replaceAll("X", "0")),
+			Number(tempData)
+		]
 	}
 }
 
 function find_match_feature(arr){
 	var num = 0
-	console.log(arr)
+	console.log(num)
 	for(var i of arr){
 		console.log(i)
 		num = num | feature_data[i];
@@ -88,7 +107,7 @@ function find_match_feature(arr){
 
 	var ret = []
 	for(var segment in data){
-		if((num & data[segment]) == num){
+		if((num & data[segment][0]) == num){
 			ret.push(segment)
 		}
 	}
@@ -98,16 +117,25 @@ function find_match_feature(arr){
 function find_match_segment(arr){
 	if (arr.length < 1) return [];
 
-	var num = data[arr[0]]
+	var num = data[arr[0]][0]
+	var neg = data[arr[0]][1]
+	
 	var ret = []
+	console.log(num)
+	console.log(neg)
 
 	for(var i of arr){
-		num = num & data[i]
+		num = num & data[i][0]
+		neg = neg & data[i][1]
 	}
-
+	var selection_value = Number($("#output-type").val());
+	console.log($("#output-type").val())
 	for(var feat in feature_data){
-		if((num&feature_data[feat])==feature_data[feat]){
-			ret.push(feat)
+		if(selection_value != 1 && (num&feature_data[feat])==feature_data[feat]){
+			ret.push("+"+feat)
+		}
+		if(selection_value > 0 && (neg&feature_data[feat])==feature_data[feat]){
+			ret.push("-"+feat)
 		}
 	}
 
@@ -128,6 +156,7 @@ function click_obj(val, segment){
 		obj.removeClass('selected');
 		selected_objects.splice(selected_objects.indexOf(val), 1);
 	}
+	console.log(val, segment)
 	update_matches()
 }
 
