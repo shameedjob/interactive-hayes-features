@@ -58,7 +58,7 @@ function processData(allText) {
 		var table_row = $('<tr id="row-'+i+'"></tr>');
 		table_row.appendTo(table)
 		var row = all_lines[i].split(',');
-		console.log(row[0])
+		
 		feature_data[row[0]] = Number("0b"+"0".repeat(i-1)+"1"+"0".repeat(all_lines.length-i-1))
 		for (let j = 0; j < row.length; j++){
 			var value = row[j];
@@ -89,7 +89,7 @@ function processData(allText) {
 		tempData = tempData.replaceAll("1", "0")
 		tempData = tempData.replaceAll("-", "1")
 		tempData = "0b"+tempData.replaceAll("X", "0")
-		console.log(tempData)
+		
 		data[header[i]] = [
 			Number("0b"+data[header[i]].replaceAll("X", "0")),
 			Number(tempData)
@@ -99,9 +99,9 @@ function processData(allText) {
 
 function find_match_feature(arr){
 	var num = 0
-	console.log(num)
+	
 	for(var i of arr){
-		console.log(i)
+		
 		num = num | feature_data[i];
 	}
 
@@ -121,23 +121,25 @@ function find_match_segment(arr){
 	var neg = data[arr[0]][1]
 	
 	var ret = []
-	console.log(num)
-	console.log(neg)
 
+	var segment = {}
 	for(var i of arr){
+		segment[i] = data[i]
 		num = num & data[i][0]
 		neg = neg & data[i][1]
 	}
+
 	var selection_value = Number($("#output-type").val());
-	console.log($("#output-type").val())
 	for(var feat in feature_data){
 		if(selection_value != 1 && (num&feature_data[feat])==feature_data[feat]){
-			ret.push("+"+feat)
+			ret.push($(`<p class="pos">+${feat}</pos>`))
 		}
 		if(selection_value > 0 && (neg&feature_data[feat])==feature_data[feat]){
-			ret.push("-"+feat)
+			ret.push($(`<p class="neg">-${feat}</pos>`))
 		}
 	}
+
+	load_match_table(segment, num, neg)
 
 	return ret;
 }
@@ -156,11 +158,12 @@ function click_obj(val, segment){
 		obj.removeClass('selected');
 		selected_objects.splice(selected_objects.indexOf(val), 1);
 	}
-	console.log(val, segment)
+	
 	update_matches()
 }
 
 function deselect_objects(){
+	
 	for(var o of selected_objects){
 		if (segments_selected){
 			$("#"+o+"_header").toggleClass("selected", false);
@@ -172,6 +175,13 @@ function deselect_objects(){
 	selected_objects = []
 }
 
+function hard_deselect_objects(){
+	deselect_objects();
+	segments_selected = true;
+	clear_match_table();
+	update_matches();
+}
+
 function update_matches(){
 	if(segments_selected){
 		update_matches_segments();
@@ -179,7 +189,46 @@ function update_matches(){
 	else{
 		update_matches_features();
 	}
-	console.log($('#selected'))
+}
+
+function load_match_table(segments, pos, neg){
+	clear_match_table()
+	var table = $("<table></table>")
+	var table_header = $("<th></th>")
+	table_header.appendTo(table)
+	$("<td>Unique Characteristics</td>").appendTo(table_header)
+	var selection_value = Number($("#output-type").val());
+	for(var seg in segments){
+		var row = $("<tr></tr>")
+		row.appendTo(table)
+		$(`<td>${seg}</td>`).appendTo(row)
+
+		var diff = (segments[seg][0]^pos)&segments[seg][0]
+		var diff_n = (segments[seg][1]^neg)&segments[seg][1]
+		
+		var unique_features = []
+		for(var feat in feature_data){
+			
+			if((selection_value%2==0) && ((diff&feature_data[feat])==feature_data[feat])){
+				unique_features.push($(`<p class="pos">+${feat}</p>`))
+			}
+			if((selection_value>0)&&((diff_n&feature_data[feat])==feature_data[feat])){
+				unique_features.push($(`<p class="neg">-${feat}</p>`))
+			}
+		}
+
+		var detail = $(`<td style="display:flex;"></td>`)
+		for(var d of unique_features){
+			detail.append(d)
+		}
+		detail.appendTo(row)
+	}
+
+	$("#compare-table").append(table)
+}
+
+function clear_match_table(){
+	$("#compare-table").empty()
 }
 
 function update_matches_segments(){
@@ -190,7 +239,10 @@ function update_matches_segments(){
 	}
 	
 	$("#selected").text(`Selected Segments: ${keys}`);
-	$("#matches").text(find_match_segment(keys));
+	$('#matches').empty()
+	for (var i of find_match_segment(keys)){
+		$("#matches").append(i);
+	}
 }
 
 function update_matches_features(){

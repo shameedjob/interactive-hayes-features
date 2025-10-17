@@ -5,3 +5,15 @@
 .segment-header.selected{
 	color: blue;
 }
+
+p.pos{
+	color: blue;
+}
+
+p.neg{
+	color: red;
+}
+
+p{
+	padding-right: 4px;
+}
